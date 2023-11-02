@@ -8,14 +8,18 @@ const conversationSchema = new Schema({
         type: String,
         required: true
     },
-    conversation_type: {
-        type: String,
-        required: true
+    conversation_related_with: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'users'
     },
     created_at: {
         type: Date,
         default: Date.now
     },
+    last_conversation_at: {
+        type: Date,
+        default: Date.now
+    }
 });
 
 const conversations = mongoose.model("conversations", conversationSchema);

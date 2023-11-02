@@ -4,7 +4,7 @@ const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
 const userSchema = new Schema({
-    username: {
+    name: {
         type: String,
         required: true
     },
@@ -17,7 +17,8 @@ const userSchema = new Schema({
         required: true
     },
     profile_image_url: {
-        type: String
+        type: String,
+        default: ""
     },
     signup_date: {
         type: Date,
