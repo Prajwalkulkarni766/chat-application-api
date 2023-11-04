@@ -1,5 +1,3 @@
-// Messages Table: Messages should be associated with the conversation they belong to, the user who sent them, and other relevant information. You can include additional fields like attachments, message status, and message deletion flags.
-
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
@@ -8,21 +6,29 @@ const messageSchema = new Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'conversations'
     },
-    user_id: {
+    messaage_by: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'users'
     },
-    content: {
+    messaage_for: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'users'
+    },
+    message: {
         type: String,
         required: true
+    },
+    message_status: {
+        type: String,
+        required: true
+    },
+    message_type: {
+        type: String,
+        default: "text"
     },
     timestamp: {
         type: Date,
         default: Date.now
-    },
-    messages_type: {
-        type: String,
-        required: true
     },
 });
 

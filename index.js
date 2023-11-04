@@ -19,7 +19,7 @@ app.use("/api/authenticate", require("./routes/authentication"));
 app.use("/api/user", require("./routes/user"));
 
 // importing the routes from message.js
-app.use("/api/user", require("./routes/message"));
+app.use("/api/message", require("./routes/message"));
 
 // app listening on port 3000
 app.listen(3000, () => {

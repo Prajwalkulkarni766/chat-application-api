@@ -1,5 +1,3 @@
-// Users Table: You can include additional fields to store user settings, preferences, and more. User authentication and authorization are crucial for securing user data.
-
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
