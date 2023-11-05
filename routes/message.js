@@ -1,10 +1,10 @@
 const express = require("express");
 const { body, validationResult } = require("express-validator");
-const check_conversation = require("../middleware/conversation");
-const fetch_user = require("../middleware/fetchuser");
 var multer = require('multer');
 const path = require('node:path');
 const mongoose = require('mongoose');
+const check_conversation = require("../middleware/conversation");
+const fetch_user = require("../middleware/fetchuser");
 const conversationModel = require("../models/conversation");
 const userModel = require("../models/user");
 const messageModel = require("../models/messages");
@@ -12,8 +12,11 @@ const messageModel = require("../models/messages");
 // creating router
 const router = express.Router();
 
+// middleware
+router.use(fetch_user);
+
 // router to send message
-router.post("/sendmessage", fetch_user, check_conversation,
+router.post("/sendMessage", check_conversation,
     body("id").custom((value) => {
         if (!mongoose.Types.ObjectId.isValid(value)) {
             return Promise.reject("Enter a valid user id");
@@ -70,7 +73,7 @@ router.post("/sendmessage", fetch_user, check_conversation,
     });
 
 // router to get multiple conversation list
-router.get("/getconversations",
+router.get("/getConversations",
     body("id").custom((value) => {
         if (!mongoose.Types.ObjectId.isValid(value)) {
             return Promise.reject("Enter a valid user id");
@@ -127,7 +130,7 @@ router.get("/getconversations",
     });
 
 // router to get previous messages which belong to particular conversation
-router.get("/getpreviousmessages",
+router.get("/getPreviousMessages",
     body("id").custom((value) => {
         if (!mongoose.Types.ObjectId.isValid(value)) {
             return Promise.reject("Enter a valid user id");
@@ -163,7 +166,7 @@ router.get("/getpreviousmessages",
     });
 
 // router to get new messages from every conversation user have
-router.get("/getnewmessage", body("id").custom((value) => {
+router.get("/getNewMessage", body("id").custom((value) => {
     if (!mongoose.Types.ObjectId.isValid(value)) {
         return Promise.reject("Enter a valid user id");
     }
@@ -207,7 +210,7 @@ router.get("/getnewmessage", body("id").custom((value) => {
     });
 
 // router to convert the status of message from delivered to read
-router.put("/changestatus",
+router.put("/changeMessageStatus",
     body("message_id").custom((value) => {
         if (!mongoose.Types.ObjectId.isValid(value)) {
             return Promise.reject("Enter valid message id");
@@ -215,6 +218,15 @@ router.put("/changestatus",
         return Promise.resolve();
     }),
     async (req, res) => {
+
+        // assigining the validation result
+        const errors = validationResult(req);
+
+        // error are not empty
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() })
+        }
+
         try {
 
             // filtering message by id
@@ -254,7 +266,7 @@ var upload = multer({
     }
 }).single('file');
 
-router.post("/sendfile", async (req, res) => {
+router.post("/sendFile", async (req, res) => {
     try {
         await new Promise((resolve, reject) => {
             upload(req, res, function (err) {
@@ -286,77 +298,132 @@ router.post("/sendfile", async (req, res) => {
 
 
 // router to get a file
-router.get("/getfile", async (req, res) => {
-    try {
+router.get("/getFile",
+    body("message_id").custom((value) => {
+        if (!mongoose.Types.ObjectId.isValid(value)) {
+            return Promise.reject("Enter valid message id");
+        }
+        return Promise.resolve();
+    }),
+    async (req, res) => {
 
-        // getting message id
-        let message_id = req.body.message_id;
+        // assigining the validation result
+        const errors = validationResult(req);
 
-        // fetching message
-        let message = await messageModel.findById(message_id);
-
-        // if user doesn't uploaded document yet
-        if (message.message_type !== "file") {
-            return res.status(400).json({ message: "Invalid message id" });
+        // error are not empty
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() })
         }
 
-        // Get the current directory
-        const currentDirectory = process.cwd();
+        try {
 
-        // getting document url
-        let document_url = path.join(currentDirectory, message.message);
+            // getting message id
+            let message_id = req.body.message_id;
 
-        // returning document
-        return res.status(200).sendFile(document_url);
-    }
-    catch (error) {
-        console.error(error);
-        return res.status(500).json({ message: "Internal server error" });
-    }
-});
+            // fetching message
+            let message = await messageModel.findById(message_id);
+
+            // if user doesn't uploaded document yet
+            if (message.message_type !== "file") {
+                return res.status(400).json({ message: "Invalid message id" });
+            }
+
+            // Get the current directory
+            const currentDirectory = process.cwd();
+
+            // getting document url
+            let document_url = path.join(currentDirectory, message.message);
+
+            // returning document
+            return res.status(200).sendFile(document_url);
+        }
+        catch (error) {
+            console.error(error);
+            return res.status(500).json({ message: "Internal server error" });
+        }
+    });
 
 // router to download the file
-router.get("/downloadfile", async (req, res) => {
-    try {
+router.get("/downloadFile",
+    body("message_id").custom((value) => {
+        if (!mongoose.Types.ObjectId.isValid(value)) {
+            return Promise.reject("Enter valid message id");
+        }
+        return Promise.resolve();
+    }),
+    async (req, res) => {
 
-        // getting message id
-        let message_id = req.body.message_id;
+        // assigining the validation result
+        const errors = validationResult(req);
 
-        // fetching message
-        let message = await messageModel.findById(message_id);
-
-        // if message not found
-        if (!message) {
-            return res.status(400).json({ message: "Invalid message id" })
+        // error are not empty
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() })
         }
 
-        // Get the current directory
-        const currentDirectory = process.cwd();
+        try {
 
-        // getting document url
-        let document_url = path.join(currentDirectory, message.message);
+            // getting message id
+            let message_id = req.body.message_id;
 
-        // returning document
-        return res.status(200).download(document_url);
-    }
-    catch (error) {
-        console.error(error);
-        return res.status(500).json({ message: "Internal server error" })
-    }
-});
+            // fetching message
+            let message = await messageModel.findById(message_id);
+
+            // if message not found
+            if (!message) {
+                return res.status(400).json({ message: "Invalid message id" })
+            }
+
+            // Get the current directory
+            const currentDirectory = process.cwd();
+
+            // getting document url
+            let document_url = path.join(currentDirectory, message.message);
+
+            // returning document
+            return res.status(200).download(document_url);
+        }
+        catch (error) {
+            console.error(error);
+            return res.status(500).json({ message: "Internal server error" })
+        }
+    });
 
 // router to delete conversation and messages
-router.delete("/deleteconversation", async (req, res) => {
-    try {
-        let conversation_id = req.body.conversation_id;
-        const conversation = await conversationModel.findByIdAndDelete(conversation_id);
-        const message = await messageModel.deleteMany({ conversation_id: conversation_id });
-        return res.status(200).json({ message: "Conversation and messages deleted" });
-    }
-    catch (error) {
-        console.error(error);
-        return res.status(500).json({ message: "Internal server error" });
-    }
-});
+router.delete("/deleteConversation",
+    body("conversation_id").custom((value) => {
+        if (!mongoose.Types.ObjectId.isValid(value)) {
+            return Promise.reject("Enter valid conversation id");
+        }
+        return Promise.resolve();
+    }),
+    async (req, res) => {
+
+        // assigining the validation result
+        const errors = validationResult(req);
+
+        // error are not empty
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() })
+        }
+
+        try {
+            // destrucing conversation id
+            let conversation_id = req.body.conversation_id;
+
+            // finding conversation in collection conversations and deleting it
+            const conversation = await conversationModel.findByIdAndDelete(conversation_id);
+
+            // finding messages in collection messages and deleting it
+            const message = await messageModel.deleteMany({ conversation_id: conversation_id });
+
+            // returning satus code
+            return res.status(200).json({ message: "Conversation and messages deleted" });
+        }
+        catch (error) {
+            console.error(error);
+            return res.status(500).json({ message: "Internal server error" });
+        }
+    });
 
 module.exports = router;

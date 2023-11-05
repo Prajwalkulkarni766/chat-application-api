@@ -8,7 +8,7 @@ const router = express.Router();
 // router to signup
 router.post("/signup", body("name", "Enter a valid name").isLength({ min: 1 }),
     body("email", "Enter a valid email").isEmail(),
-    body("password", "Enter a valid password. Password must contain atleast 8 characters.").isLength({ min: 8 }),
+    body("password", "Enter a valid password. Password must contain atleast 8 characters.").isLength({ min: 8, max: 16 }),
     async (req, res) => {
 
         // assigining the validation result
@@ -55,7 +55,7 @@ router.post("/signup", body("name", "Enter a valid name").isLength({ min: 1 }),
 // route for login
 router.post("/login",
     body("email", "Enter a valid email").isEmail(),
-    body("password", "Enter a valid password. Password must contain atleast 8 characters.").isLength({ min: 8 }),
+    body("password", "Enter a valid password. Password must contain atleast 8 characters.").isLength({ min: 8, max: 16 }),
     async (req, res) => {
 
         // assigining the validation result

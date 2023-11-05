@@ -3,6 +3,7 @@ const conversationModel = require("../models/conversation");
 const check_conversation = async (req, res, next) => {
     try {
 
+        // checking conversation_id in the request
         if (!req.body.conversation_id) {
 
             // checking conversation from 1st pov

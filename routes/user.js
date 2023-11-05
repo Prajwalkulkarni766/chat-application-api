@@ -1,16 +1,16 @@
-const mongoose = require('mongoose');
 const express = require("express");
 var multer = require('multer');
-const userModel = require("../models/user");
 const path = require('node:path');
 const { body, validationResult } = require('express-validator');
+const userModel = require("../models/user");
 const fetch_user = require('../middleware/fetchuser');
+const mongoose = require('mongoose');
 
 // creating the router
 const router = express.Router();
 
 // route for get user
-router.get("/getuser",
+router.get("/getUser",
     body("id").custom((value) => {
         if (!mongoose.Types.ObjectId.isValid(value)) {
             return Promise.reject("Enter a valid user id");
@@ -76,7 +76,7 @@ var upload = multer({
     }
 }).single('profile_img');
 
-router.put('/profileimg', async (req, res) => {
+router.put('/profileImg', async (req, res) => {
     try {
         await new Promise((resolve, reject) => {
             upload(req, res, function (err) {
@@ -110,7 +110,7 @@ router.put('/profileimg', async (req, res) => {
 router.use(fetch_user);
 
 // route for changing name of user
-router.put("/changename",
+router.put("/changeName",
     body("name", "Enter valid name").isLength({ min: 1 })
     , async (req, res) => {
 
@@ -142,7 +142,7 @@ router.put("/changename",
     });
 
 // route for changing email of user
-router.put("/changeemail",
+router.put("/changeEmail",
     body("newemail", "Enter valid email").isEmail()
     , async (req, res) => {
 
@@ -174,7 +174,7 @@ router.put("/changeemail",
     });
 
 // route for changing password of user
-router.put("/changepassword",
+router.put("/changePassword",
     body("password", "Enter valid password having minimum character 8 and maximum character 16").isLength({ min: 8, max: 16 })
     , async (req, res) => {
 
@@ -206,7 +206,7 @@ router.put("/changepassword",
     });
 
 // get profile image
-router.get("/profileimg", async (req, res) => {
+router.get("/profileImg", async (req, res) => {
     try {
         let userid = req.body.id;
         let user = await userModel.findById(userid);
@@ -229,7 +229,7 @@ router.get("/profileimg", async (req, res) => {
         console.error(error);
         return res.status(500).json({ message: "Internal server error" });
     }
-})
+});
 
 // exporting above created user
 module.exports = router;
