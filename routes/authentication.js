@@ -1,95 +1,104 @@
 const express = require("express");
 const userModel = require("../models/user");
 const { body, validationResult } = require('express-validator');
-
-// creating the router
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const secreteKey = process.env.JWT_SECRET_KEY;
 const router = express.Router();
 
-// router to signup
-router.post("/signup", body("name", "Enter a valid name").isLength({ min: 1 }),
+// Route for user signup
+router.post("/signup", 
+    body("name", "Enter a valid name").isLength({ min: 1 }),
     body("email", "Enter a valid email").isEmail(),
-    body("password", "Enter a valid password. Password must contain atleast 8 characters.").isLength({ min: 8, max: 16 }),
+    body("password", "Enter a valid password. Password must contain at least 8 and at most 16 characters.").isLength({ min: 8, max: 16 }),
     async (req, res) => {
-
-        // assigining the validation result
-        const errors = validationResult(req);
-
-        // error are not empty
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
-        }
-
         try {
+            // Validate request parameters
+            const errors = validationResult(req);
 
-            // checking user with same email exsist or not
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ errors: errors.array() });
+            }
+
+            // Check if user with the same email already exists
             let newUser = await userModel.findOne({ email: req.body.email });
 
-            // if exists
             if (newUser) {
                 return res.status(400).json({ message: "User with this email already exists" });
             }
 
-            // if not exists
+            // Hash the password before storing it in the database
+            const hashedPassword = await bcrypt.hash(req.body.password, 10);
+
+            // Create a new user
             newUser = await userModel({
                 name: req.body.name,
                 email: req.body.email,
-                password: req.body.password,
+                password: hashedPassword,
                 profile_image_url: req.body.profile_image_url,
             });
 
-            // saving the user
+            // Save the new user to the database
             await newUser.save();
-
-            // getting newly created user's id
-            let newUserId = newUser._id;
-
-            // sending user id in response 
-            return res.status(200).json({ id: newUserId });
-        }
-        catch (error) {
+			const userId = newUser._id;
+			
+			/*
+			// if you want to send cookie
+			const authToken = jwt.sign({ userId: userId }, secreteKey);
+			return res.status(201).cookie("token", authToken, { secure: true }); 
+			*/
+			
+			// if you want to send json
+			const authToken = jwt.sign({ userId: userId }, secreteKey);
+			return res.status(201).json({token: authToken });
+			
+        } catch (error) {
             console.error(error);
             return res.status(500).json({ message: "Internal server error" });
         }
     });
 
-// route for login
+// Route for user login
 router.post("/login",
     body("email", "Enter a valid email").isEmail(),
-    body("password", "Enter a valid password. Password must contain atleast 8 characters.").isLength({ min: 8, max: 16 }),
+    body("password", "Enter a valid password. Password must contain at least 8 and at most 16 characters.").isLength({ min: 8, max: 16 }),
     async (req, res) => {
-
-        // assigining the validation result
-        const errors = validationResult(req);
-
-        // error are not empty
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() })
-        }
-
         try {
+            // Validate request parameters
+            const errors = validationResult(req);
 
-            // checking that user with this email exists or not
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ errors: errors.array() });
+            }
+
+            // Check if user with the provided email exists
             let existingUser = await userModel.findOne({ email: req.body.email });
 
-            // if user not exists
             if (!existingUser) {
-                return res.status(400).json({ message: "User with this email not exists" });
+                return res.status(400).json({ message: "User with this email does not exist" });
             }
 
-            // if entered password not matches with stored/given password
-            if (req.body.password !== existingUser.password) {
+            // Check if the entered password matches the stored password
+            const passwordMatch = await bcrypt.compare(req.body.password, existingUser.password);
+
+            if (!passwordMatch) {
                 return res.status(400).json({ message: "Entered password is incorrect" });
             }
-
-            // sending id in the response
-            let userID = existingUser._id;
-            return res.status(200).send(userID);
-        }
-        catch (error) {
+			
+			/*
+			// if you want to send cookie
+			const authToken = jwt.sign({ userId: existingUser._id }, secreteKey);
+			return res.status(201).cookie("token", authToken, { secure: true }); 
+			*/
+			
+			// if you want to send json
+			const authToken = jwt.sign({ userId: existingUser._id }, secreteKey);
+			return res.status(200).json({token: authToken }); 
+            
+        } catch (error) {
             console.error(error);
             return res.status(500).json({ message: "Internal server error" });
         }
     });
 
-// exporting above created user
 module.exports = router;

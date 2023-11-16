@@ -15,6 +15,4 @@ const ConnectToMongoose = async () => {
     }
 }
 
-// ConnectToMongoose();
-
 module.exports = ConnectToMongoose;

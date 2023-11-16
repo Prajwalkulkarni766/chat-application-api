@@ -4,11 +4,11 @@ const { Schema } = mongoose;
 const conversationSchema = new Schema({
     conversation_by: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'users'
+        ref: 'user'
     },
     conversation_with: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'users'
+        ref: 'user'
     },
     last_conversation_at: {
         type: Date,
@@ -24,5 +24,5 @@ const conversationSchema = new Schema({
     },
 });
 
-const conversations = mongoose.model("conversations", conversationSchema);
-module.exports = conversations;
+const Conversation = mongoose.model("Conversation", conversationSchema);
+module.exports = Conversation;

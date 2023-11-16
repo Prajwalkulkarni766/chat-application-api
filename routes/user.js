@@ -1,17 +1,22 @@
 const express = require("express");
-var multer = require('multer');
+const multer = require('multer');
 const path = require('node:path');
-const { body, validationResult } = require('express-validator');
+const { param, body, validationResult } = require('express-validator');
 const userModel = require("../models/user");
-const fetch_user = require('../middleware/fetchuser');
+const fetchUser = require('../middleware/fetchUser');
 const mongoose = require('mongoose');
+const fs = require("fs");
+const bcrypt = require('bcrypt');
 
 // creating the router
 const router = express.Router();
 
+// using fetchUser function as a middleware
+router.use(fetchUser);
+
 // route for get user
-router.get("/getUser",
-    body("id").custom((value) => {
+router.get("/getUser/:id",
+    param("id").custom((value) => {
         if (!mongoose.Types.ObjectId.isValid(value)) {
             return Promise.reject("Enter a valid user id");
         }
@@ -28,12 +33,11 @@ router.get("/getUser",
         }
 
         try {
-
             // assigning id
-            let userId = req.body.id;
+            const userId = req.params.id;
 
             // getting user
-            let user = await userModel.findById(userId).select("-password");
+            const user = await userModel.findById(userId).select("-password -profile_image_url -__v -signup_date -email");
 
             // if user not exists
             if (!user) {
@@ -47,18 +51,18 @@ router.get("/getUser",
             return res.status(500).json({ message: "Internal server error" });
         }
     });
-
+	
 // router to change the profile image
-var abc = "";
+var pathString = "";
 
-var storage = multer.diskStorage({
+const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, './docs')
+        cb(null, './docs');
     },
     filename: function (req, file, cb) {
-        var datetimestamp = Date.now();
-        abc = datetimestamp + '.' + file.originalname.split('.')[file.originalname.split('.').length - 1];
-        cb(null, abc);
+        const datetimestamp = Date.now();
+        pathString = datetimestamp + '.' + file.originalname.split('.')[file.originalname.split('.').length - 1];
+        cb(null, pathString);
     }
 });
 
@@ -67,9 +71,9 @@ var upload = multer({
     fileFilter: function (req, file, callback) {
         var ext = path.extname(file.originalname);
         if (ext !== '.png' && ext !== '.jpg' && ext !== '.gif' && ext !== '.jpeg') {
-            return callback(new Error('Only images are allowed'))
+            return callback(new Error('Only images are allowed'));
         }
-        callback(null, true)
+        callback(null, true);
     },
     limits: {
         fileSize: 1024 * 1024
@@ -81,6 +85,7 @@ router.put('/profileImg', async (req, res) => {
         await new Promise((resolve, reject) => {
             upload(req, res, function (err) {
                 if (err) {
+                    console.error(err);
                     reject("Error uploading profile image.");
                 } else {
                     resolve();
@@ -88,26 +93,27 @@ router.put('/profileImg', async (req, res) => {
             });
         });
 
-        // creating filter based on email
-        const filter = { email: req.body.email };
+        const userId = req.body.id;
+        const getUser = await userModel.findById(userId);
 
-        // creating update for image
-        const update = { profile_image_url: "/docs/" + abc };
+		// checking that user previously uploaded any image or not if yes then delete that image
+        if (getUser.profile_image_url && getUser.profile_image_url !== "") {
+            const currentDirectory = process.cwd();
+            const profileImageUrl = path.join(currentDirectory, getUser.profile_image_url);
+            fs.unlinkSync(profileImageUrl);
+            console.log("Deleted previous image");
+        }
 
-        // new true because we want to return the newly updated document
-        const updateuser = await userModel.findOneAndUpdate(filter, update, {
-            new: true
-        });
+		// updating the user information in database
+        const update = { profile_image_url: path.join('/docs', pathString) };
+        const updateUser = await userModel.findByIdAndUpdate(userId, update, { new: true });
 
-        return res.status(200).end(abc);
+        return res.status(204).end(); // No Content
     } catch (error) {
         console.error(error);
-        return res.status(400).end(error);
+        return res.status(400).json({ error: error.message });
     }
 });
-
-// using fetch_user function as a middleware
-router.use(fetch_user);
 
 // route for changing name of user
 router.put("/changeName",
@@ -131,9 +137,9 @@ router.put("/changeName",
             const update = { name: req.body.name };
 
             // new true because we want to return newly updated document
-            const updateuser = await userModel.findByIdAndUpdate(filter, update, { new: true });
+            const updateUser = await userModel.findByIdAndUpdate(filter, update, { new: true });
 
-            return res.status(200).send(updateuser);
+            return res.status(200).json({ message: "Name updated" });
         }
         catch (error) {
             console.error(error);
@@ -163,9 +169,9 @@ router.put("/changeEmail",
             const update = { email: req.body.newemail };
 
             // new true because we want to return newly updated document
-            const updateuser = await userModel.findByIdAndUpdate(filter, update, { new: true });
+            const updateUser = await userModel.findByIdAndUpdate(filter, update, { new: true });
 
-            return res.status(200).send(updateuser);
+            return res.status(200).json({ message: "Email address updated" });
         }
         catch (error) {
             console.error(error);
@@ -191,13 +197,15 @@ router.put("/changePassword",
             // creating filter based on email
             const filter = { _id: req.body.id };
 
+			const hashedPassword = await bcrypt.hash(req.body.password, 10);
+			
             // creating update for password
-            const update = { password: req.body.password };
+            const update = { password: hashedPassword };
 
             // new true because we want to return newly updated document
-            const updateuser = await userModel.findByIdAndUpdate(filter, update, { new: true });
+            const updateUser = await userModel.findByIdAndUpdate(filter, update, { new: true });
 
-            return res.status(200).send(updateuser);
+            return res.status(200).json({ message: "Password updated" });
         }
         catch (error) {
             console.error(error);
@@ -206,10 +214,17 @@ router.put("/changePassword",
     });
 
 // get profile image
-router.get("/profileImg", async (req, res) => {
+router.get("/profileImg/:id", 
+	param("id").custom((value) => {
+        if (!mongoose.Types.ObjectId.isValid(value)) {
+            return Promise.reject("Enter a valid user id");
+        }
+        return Promise.resolve();
+    }),
+	async (req, res) => {
     try {
-        let userid = req.body.id;
-        let user = await userModel.findById(userid);
+        let userId = req.params.id;
+        let user = await userModel.findById(userId);
 
         // if user doesn't uploaded image yet
         if (!user.profile_image_url || user.profile_image_url === "") {

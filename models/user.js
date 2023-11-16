@@ -15,8 +15,7 @@ const userSchema = new Schema({
         required: true
     },
     profile_image_url: {
-        type: String,
-        default: ""
+        type: String
     },
     signup_date: {
         type: Date,
@@ -24,5 +23,5 @@ const userSchema = new Schema({
     },
 });
 
-const users = mongoose.model("users", userSchema);
-module.exports = users;
+const User = mongoose.model("User", userSchema);
+module.exports = User;

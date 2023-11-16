@@ -1,43 +1,23 @@
-const userModel = require("../models/user");
-const mongoose = require("mongoose");
+const jwt = require('jsonwebtoken');
+const secreteKey = process.env.JWT_SECRET_KEY;
 
-const fetch_user = async (req, res, next) => {
-    try {
-
-        // if entered id is not valid type of mongoose object id
-        if (!mongoose.Types.ObjectId.isValid(req.body.id)) {
-            return res.status(400).json({ message: "Enter valid user id" });
-        }
-
-        // destructuring who started conversation userid
-        let userid = req.body.id;
-
-        // fetching user
-        let user = await userModel.findById(userid);
-
-        // if user not found
-        if (!user) {
-            return res.status(400).json({ message: "User not found" });
-        }
-
-        // checking the with started conversation userid is present in the request
-        if (req.body.related_with) {
-
-            // destructuring with started conversation userid
-            let related_with = req.body.related_with;
-            let related_with_conversation_user = await userModel.findById(related_with);
-
-            // if that user not found
-            if (!related_with_conversation_user) {
-                return res.status(400).json({ message: "User not found" });
-            }
-        }
-        next();
+const fetchUser = (req, res, next) => {
+    const token = req.header('token');
+    // if token is not valid then send response 401
+    if (!token) {
+        return res.send(401).json({ error: 'Please provide vaild token' });
     }
-    catch (error) {
-        console.error(error);
-        return res.status(500).json({ message: "Internal server error" });
+    try {
+        // verify the token
+        const data = jwt.verify(token, secreteKey);
+        // append all data to the request
+        req.user = data.user;
+        // next means moving to the next function
+        next();
+    } catch (error) {
+        console.log(error.message);
+        res.status(401).json({ error: 'Invalid token' });
     }
 }
 
-module.exports = fetch_user;
+module.exports = fetchUser;

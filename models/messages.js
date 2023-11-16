@@ -4,15 +4,23 @@ const { Schema } = mongoose;
 const messageSchema = new Schema({
     conversation_id: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'conversations'
+        refPath: 'conversation_type' // reference to another field
     },
-    messaage_by: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'users'
+    conversation_type: {
+        type: String,
+        required: true,
+        enum: ['Conversation', 'Group'] // enum to specify possible reference types
     },
-    messaage_for: {
+    message_by: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'users'
+		required: true,
+        ref: 'User'
+    },
+    message_for: {
+        type: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        }]
     },
     message: {
         type: String,
@@ -32,5 +40,5 @@ const messageSchema = new Schema({
     },
 });
 
-const messages = mongoose.model("messages", messageSchema);
-module.exports = messages;
+const Message = mongoose.model("Message", messageSchema);
+module.exports = Message; 
